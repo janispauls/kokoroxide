@@ -34,7 +34,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_graph_optimization_level(kokoroxide::GraphOptimizationLevel::Disable);
 
     // Build the speech engine with the explicit configuration so advanced knobs are available.
-    let tts_service = KokoroTTS::with_config(config)?;
+    let mut tts_service = KokoroTTS::with_config(config)?;
 
     // Load a voice style vector (.bin) that controls prosody and speaker identity.
     let voice = load_voice_style("path/to/voice.bin")?;
@@ -60,14 +60,10 @@ For a complete runnable example pointing at real assets, see the `kokoroxide-dem
 The main TTS engine that handles text-to-speech conversion.
 
 ```rust
-// Create with default config
-let tts = KokoroTTS::new(model_path, tokenizer_path)?;
-
-// Create with custom config
 let config = TTSConfig::new(model_path, tokenizer_path)
     .with_max_tokens_length(128)
     .with_sample_rate(24000);
-let tts = KokoroTTS::with_config(config)?;
+let mut tts = KokoroTTS::with_config(config)?;
 ```
 
 #### `VoiceStyle`
@@ -220,10 +216,11 @@ Download the Kokoro model files from the official repository:
 ### Basic TTS Application
 
 ```rust
-use kokoroxide::{KokoroTTS, load_voice_style};
+use kokoroxide::{KokoroTTS, TTSConfig, load_voice_style};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let tts = KokoroTTS::new("model.onnx", "tokenizer.json")?;
+    let config = TTSConfig::new("model.onnx", "tokenizer.json");
+    let mut tts = KokoroTTS::with_config(config)?;
     let voice = load_voice_style("voice.bin")?;
 
     let text = "Welcome to kokoroxide TTS!";
