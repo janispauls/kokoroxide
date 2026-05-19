@@ -11,7 +11,7 @@
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! // Configure and initialize Kokoro TTS
 //! let config = TTSConfig::new("path/to/model.onnx", "path/to/tokenizer.json");
-//! let tts = KokoroTTS::with_config(config)?;
+//! let mut tts = KokoroTTS::with_config(config)?;
 //!
 //! // Load a voice style
 //! let voice = load_voice_style("path/to/voice.bin")?;
