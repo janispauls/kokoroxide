@@ -119,19 +119,8 @@ impl KokoroTTS {
             execution_provider,
         } = config;
 
-        //let env = Arc::new(ort::init().with_name("kokoro_tts"));
-        //let env = Arc::new(Environment::builder().with_name("kokoro_tts").build()?);
-
-        let optimization = match graph_level {
-            GraphOptimizationLevel::Disable => GraphOptimizationLevel::Disable,
-            GraphOptimizationLevel::Level1 => GraphOptimizationLevel::Level1,
-            GraphOptimizationLevel::Level2 => GraphOptimizationLevel::Level2,
-            GraphOptimizationLevel::Level3 => GraphOptimizationLevel::Level3,
-            GraphOptimizationLevel::All => GraphOptimizationLevel::All,
-        };
-
         let mut builder = Session::builder()?
-            .with_optimization_level(optimization)?
+            .with_optimization_level(graph_level)?
             .with_parallel_execution(true)?;
 
         if !execution_provider.is_empty() {
