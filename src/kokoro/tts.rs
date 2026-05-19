@@ -1,11 +1,13 @@
 use super::voice::VoiceStyle;
 use crate::espeak::EspeakIpaTokenizer;
-use ndarray::{Array1, Array2, CowArray, IxDyn};
-use ort::{Environment, ExecutionProvider, GraphOptimizationLevel, Session, SessionBuilder, Value};
+use ort::ep::ExecutionProviderDispatch;
+use ort::session::builder::GraphOptimizationLevel;
+use ort::session::Session;
+use ort::value::Tensor;
+use ort::{self, inputs};
 use std::error::Error;
 use std::io::Cursor;
 use std::path::Path;
-use std::sync::Arc;
 
 pub struct TTSConfig {
     pub model_path: String,
@@ -13,7 +15,7 @@ pub struct TTSConfig {
     pub max_length: usize,
     pub sample_rate: u32,
     pub graph_level: GraphOptimizationLevel,
-    pub execution_provider: Vec<ExecutionProvider>,
+    pub execution_provider: Vec<ExecutionProviderDispatch>,
 }
 
 impl TTSConfig {
@@ -43,7 +45,7 @@ impl TTSConfig {
         self
     }
 
-    pub fn with_execution_providers(mut self, providers: Vec<ExecutionProvider>) -> Self {
+    pub fn with_execution_providers(mut self, providers: Vec<ExecutionProviderDispatch>) -> Self {
         self.execution_provider = providers;
         self
     }
@@ -83,7 +85,7 @@ impl GeneratedAudio {
             // Write the actual audio
             for &sample in &self.samples {
                 // Clamp to prevent overflow
-                let clamped = sample.max(-1.0).min(1.0);
+                let clamped = sample.clamp(-1.0, 1.0);
                 let amplitude = (clamped * i16::MAX as f32) as i16;
                 writer.write_sample(amplitude)?;
             }
@@ -117,24 +119,15 @@ impl KokoroTTS {
             execution_provider,
         } = config;
 
-        let env = Arc::new(Environment::builder().with_name("kokoro_tts").build()?);
-
-        let optimization = match graph_level {
-            GraphOptimizationLevel::Disable => GraphOptimizationLevel::Disable,
-            GraphOptimizationLevel::Level1 => GraphOptimizationLevel::Level1,
-            GraphOptimizationLevel::Level2 => GraphOptimizationLevel::Level2,
-            GraphOptimizationLevel::Level3 => GraphOptimizationLevel::Level3,
-        };
-
-        let mut builder = SessionBuilder::new(&env)?
-            .with_optimization_level(optimization)?
+        let mut builder = Session::builder()?
+            .with_optimization_level(graph_level)?
             .with_parallel_execution(true)?;
 
         if !execution_provider.is_empty() {
             builder = builder.with_execution_providers(&execution_provider)?;
         }
 
-        let session = builder.with_model_from_file(&model_path)?;
+        let session = builder.commit_from_file(&model_path)?;
 
         let tokenizer_content = std::fs::read_to_string(&tokenizer_path)?;
         let tokenizer_json: serde_json::Value = serde_json::from_str(&tokenizer_content)?;
@@ -157,7 +150,7 @@ impl KokoroTTS {
     }
 
     pub fn generate_speech_from_phonemes(
-        &self,
+        &mut self,
         phonemes: &str,
         voice_style: &VoiceStyle,
         speed: f32,
@@ -168,7 +161,7 @@ impl KokoroTTS {
     }
 
     pub fn generate_speech(
-        &self,
+        &mut self,
         text: &str,
         voice_style: &VoiceStyle,
         speed: f32,
@@ -179,30 +172,22 @@ impl KokoroTTS {
     }
 
     pub fn generate_from_tokens(
-        &self,
+        &mut self,
         tokens: &[i64],
         voice_style: &VoiceStyle,
         speed: f32,
     ) -> Result<GeneratedAudio, Box<dyn Error>> {
-        let input_ids = Array2::<i64>::from_shape_vec((1, tokens.len()), tokens.to_vec())?;
-        // Use token length to select the appropriate style vector, matching Python implementation
         let style_vector = voice_style.get_style_vector_for_token_length(tokens.len(), 256);
-        let style = Array2::<f32>::from_shape_vec((1, 256), style_vector)?;
-        let speed_array = Array1::<f32>::from_vec(vec![speed]);
 
-        let input_ids_cow: CowArray<i64, IxDyn> = CowArray::from(input_ids.into_dyn());
-        let style_cow: CowArray<f32, IxDyn> = CowArray::from(style.into_dyn());
-        let speed_cow: CowArray<f32, IxDyn> = CowArray::from(speed_array.into_dyn());
-
-        let input_ids_tensor = Value::from_array(self.session.allocator(), &input_ids_cow)?;
-        let style_tensor = Value::from_array(self.session.allocator(), &style_cow)?;
-        let speed_tensor = Value::from_array(self.session.allocator(), &speed_cow)?;
+        let input_ids_tensor = Tensor::from_array(([1, tokens.len()], tokens.to_vec()))?;
+        let style_tensor = Tensor::from_array(([1usize, 256], style_vector))?;
+        let speed_tensor = Tensor::from_array(([1usize], vec![speed]))?;
 
         let outputs = self
             .session
-            .run(vec![input_ids_tensor, style_tensor, speed_tensor])?;
+            .run(inputs![input_ids_tensor, style_tensor, speed_tensor])?;
 
-        if let Ok(output) = outputs[0].try_extract::<f32>() {
+        if let Ok(output) = outputs[0].try_extract_array::<f32>() {
             let view = output.view();
             let samples = view.as_slice().unwrap().to_vec();
             let duration_seconds = samples.len() as f32 / self.sample_rate as f32;
@@ -221,7 +206,7 @@ impl KokoroTTS {
 
     #[allow(dead_code)]
     pub fn speak(
-        &self,
+        &mut self,
         text: &str,
         voice_style: &VoiceStyle,
     ) -> Result<GeneratedAudio, Box<dyn Error>> {

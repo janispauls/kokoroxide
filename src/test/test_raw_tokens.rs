@@ -1,4 +1,5 @@
 use crate::kokoro::{load_voice_style, KokoroTTS, TTSConfig};
+use ort::session::builder::GraphOptimizationLevel;
 use std::error::Error;
 
 pub fn test_raw_tokens() -> Result<(), Box<dyn Error>> {
@@ -6,11 +7,11 @@ pub fn test_raw_tokens() -> Result<(), Box<dyn Error>> {
 
     // Initialize TTS
     let tts_config = TTSConfig::new("models/kokoro/kokoro.onnx", "models/kokoro/tokenizer.json")
-        .with_graph_optimization_level(ort::GraphOptimizationLevel::Disable)
+        .with_graph_optimization_level(GraphOptimizationLevel::Disable)
         .with_max_tokens_length(512)
         .with_sample_rate(24000);
 
-    let tts = KokoroTTS::with_config(tts_config)?;
+    let mut tts = KokoroTTS::with_config(tts_config)?;
 
     // Example tokens in the format you provided
     let tokens: Vec<i64> = vec![
