@@ -85,7 +85,7 @@ impl GeneratedAudio {
             // Write the actual audio
             for &sample in &self.samples {
                 // Clamp to prevent overflow
-                let clamped = sample.max(-1.0).min(1.0);
+                let clamped = sample.clamp(-1.0, 1.0);
                 let amplitude = (clamped * i16::MAX as f32) as i16;
                 writer.write_sample(amplitude)?;
             }

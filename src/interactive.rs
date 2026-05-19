@@ -68,10 +68,10 @@ impl InteractiveTTS {
         self.output_counter += 1;
         let filename = "interactive_tts.wav";
         let audio = self.tts.generate_speech(text, &self.voice_style, 1.0)?;
-        audio.save_to_wav(&filename)?;
+        audio.save_to_wav(filename)?;
         let generation_time = start_time.elapsed();
 
-        play_wav_file(&filename)?;
+        play_wav_file(filename)?;
 
         if std::env::var("DEBUG_TIMING").is_ok() {
             println!(
