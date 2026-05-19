@@ -1,3 +1,5 @@
+use ort::session::builder::GraphOptimizationLevel;
+
 use crate::kokoro::{load_voice_style, KokoroTTS, TTSConfig};
 use crate::playback::play_wav_file;
 
@@ -6,11 +8,11 @@ pub fn test_direct_phonemes() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize TTS
     let tts_config = TTSConfig::new("models/kokoro/kokoro.onnx", "models/kokoro/tokenizer.json")
-        .with_graph_optimization_level(ort::GraphOptimizationLevel::Disable)
+        .with_graph_optimization_level(GraphOptimizationLevel::Disable)
         .with_max_tokens_length(512)
         .with_sample_rate(24000);
 
-    let tts = KokoroTTS::with_config(tts_config)?;
+    let mut tts = KokoroTTS::with_config(tts_config)?;
 
     let voice_style = load_voice_style("models/kokoro/af.bin")?;
 

@@ -40,6 +40,3 @@ pub mod kokoro;
 
 // Re-export main types for convenience
 pub use kokoro::{load_voice_style, GeneratedAudio, KokoroTTS, TTSConfig, VoiceStyle};
-
-// Re-export ONNX GraphOptimizationLevel for configuration
-pub use ort::GraphOptimizationLevel;

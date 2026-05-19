@@ -1,3 +1,5 @@
+use ort::session::builder::GraphOptimizationLevel;
+
 use crate::kokoro::{load_voice_style, KokoroTTS, TTSConfig};
 use crate::playback::play_wav_file;
 use std::io::{self, Write};
@@ -14,7 +16,7 @@ impl InteractiveTTS {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
         let tts_config =
             TTSConfig::new("models/kokoro/kokoro.onnx", "models/kokoro/tokenizer.json")
-                .with_graph_optimization_level(ort::GraphOptimizationLevel::Disable)
+                .with_graph_optimization_level(GraphOptimizationLevel::Disable)
                 .with_max_tokens_length(512)
                 .with_sample_rate(24000);
 
@@ -96,11 +98,11 @@ pub fn run_interactive_tts_with_options(
     println!("Initializing Interactive TTS with custom options...");
 
     let tts_config = TTSConfig::new("models/kokoro/kokoro.onnx", "models/kokoro/tokenizer.json")
-        .with_graph_optimization_level(ort::GraphOptimizationLevel::Disable)
+        .with_graph_optimization_level(GraphOptimizationLevel::Disable)
         .with_max_tokens_length(512)
         .with_sample_rate(24000);
 
-    let tts = KokoroTTS::with_config(tts_config)?;
+    let mut tts = KokoroTTS::with_config(tts_config)?;
 
     let voice_path = voice_path.unwrap_or("models/kokoro/af.bin");
     let voice_style = load_voice_style(voice_path)?;
