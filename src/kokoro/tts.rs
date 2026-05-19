@@ -127,7 +127,7 @@ impl KokoroTTS {
             GraphOptimizationLevel::Level1 => GraphOptimizationLevel::Level1,
             GraphOptimizationLevel::Level2 => GraphOptimizationLevel::Level2,
             GraphOptimizationLevel::Level3 => GraphOptimizationLevel::Level3,
-            GraphOptimizationLevel::All => todo!(),
+            GraphOptimizationLevel::All => GraphOptimizationLevel::All,
         };
 
         let mut builder = Session::builder()?
