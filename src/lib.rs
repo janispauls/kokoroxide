@@ -40,3 +40,5 @@ pub mod kokoro;
 
 // Re-export main types for convenience
 pub use kokoro::{load_voice_style, GeneratedAudio, KokoroTTS, TTSConfig, VoiceStyle};
+
+pub use ort::session::builder::GraphOptimizationLevel;
